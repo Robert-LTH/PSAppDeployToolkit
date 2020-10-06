@@ -86,6 +86,8 @@ Param (
 [string]$currentUILanguage = $uiculture.TwoLetterISOLanguageName.ToUpper()
 
 ## Variables: Environment Variables
+[string]$envRunningProcessName = Get-Process -PID $PID | Select-Object -ExpandProperty ProcessName
+[string]$envPOSHExePath = "$PSHOME\$envRunningProcessName.exe"
 [psobject]$envHost = $Host
 [psobject]$envShellFolders = Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction 'SilentlyContinue'
 [string]$envAllUsersProfile = $env:ALLUSERSPROFILE
@@ -126,14 +128,14 @@ Param (
 [string]$envWinDir = $env:WINDIR
 
 ## Variables: Domain Membership
-[boolean]$IsMachinePartOfDomain = (Get-WmiObject -Class 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').PartOfDomain
+[boolean]$IsMachinePartOfDomain = (Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').PartOfDomain
 [string]$envMachineWorkgroup = ''
 [string]$envMachineADDomain = ''
 [string]$envLogonServer = ''
 [string]$MachineDomainController = ''
 [string]$envComputerNameFQDN = $envComputerName
 If ($IsMachinePartOfDomain) {
-	[string]$envMachineADDomain = (Get-WmiObject -Class 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').Domain | Where-Object { $_ } | ForEach-Object { $_.ToLower() }
+	[string]$envMachineADDomain = (Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').Domain | Where-Object { $_ } | ForEach-Object { $_.ToLower() }
 	try {
 		$envComputerNameFQDN = ([Net.Dns]::GetHostEntry('localhost')).HostName
 	}
@@ -158,7 +160,7 @@ If ($IsMachinePartOfDomain) {
 	catch {	}
 }
 Else {
-	[string]$envMachineWorkgroup = (Get-WmiObject -Class 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').Domain | Where-Object { $_ } | ForEach-Object { $_.ToUpper() }
+	[string]$envMachineWorkgroup = (Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction 'SilentlyContinue').Domain | Where-Object { $_ } | ForEach-Object { $_.ToUpper() }
 }
 [string]$envMachineDNSDomain = [Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().DomainName | Where-Object { $_ } | ForEach-Object { $_.ToLower() }
 [string]$envUserDNSDomain = $env:USERDNSDOMAIN | Where-Object { $_ } | ForEach-Object { $_.ToLower() }
@@ -168,7 +170,7 @@ Try {
 Catch { }
 
 ## Variables: Operating System
-[psobject]$envOS = Get-WmiObject -Class 'Win32_OperatingSystem' -ErrorAction 'SilentlyContinue'
+[psobject]$envOS = Get-CimInstance -ClassName 'Win32_OperatingSystem' -ErrorAction 'SilentlyContinue'
 [string]$envOSName = $envOS.Caption.Trim()
 [string]$envOSServicePack = $envOS.CSDVersion
 [version]$envOSVersion = $envOS.Version
@@ -195,7 +197,7 @@ Switch ($envOSProductType) {
 	Default { [string]$envOSProductTypeName = 'Unknown' }
 }
 #  Get the OS Architecture
-[boolean]$Is64Bit = [boolean]((Get-WmiObject -Class 'Win32_Processor' -ErrorAction 'SilentlyContinue' | Where-Object { $_.DeviceID -eq 'CPU0' } | Select-Object -ExpandProperty 'AddressWidth') -eq 64)
+[boolean]$Is64Bit = [boolean]((Get-CimInstance -ClassName 'Win32_Processor' -ErrorAction 'SilentlyContinue' | Where-Object { $_.DeviceID -eq 'CPU0' } | Select-Object -ExpandProperty 'AddressWidth') -eq 64)
 If ($Is64Bit) { [string]$envOSArchitecture = '64-bit' } Else { [string]$envOSArchitecture = '32-bit' }
 
 ## Variables: Current Process Architecture
@@ -234,7 +236,7 @@ Else {
 }
 
 ## Variables: Hardware
-[int32]$envSystemRAM = Get-WMIObject -Class Win32_PhysicalMemory -ComputerName $env:COMPUTERNAME -ErrorAction 'SilentlyContinue' | Measure-Object -Property Capacity -Sum -ErrorAction SilentlyContinue | ForEach-Object {[Math]::Round(($_.sum / 1GB),2)}
+[int32]$envSystemRAM = Get-CimInstance -ClassName Win32_PhysicalMemory -ComputerName $env:COMPUTERNAME -ErrorAction 'SilentlyContinue' | Measure-Object -Property Capacity -Sum -ErrorAction SilentlyContinue | ForEach-Object {[Math]::Round(($_.sum / 1GB),2)}
 
 ## Variables: PowerShell And CLR (.NET) Versions
 [hashtable]$envPSVersionTable = $PSVersionTable
@@ -246,12 +248,14 @@ Else {
 [string]$envPSVersionRevision = $envPSVersion.Revision
 [string]$envPSVersion = $envPSVersion.ToString()
 #  CLR (.NET) Version used by PowerShell
-[version]$envCLRVersion = $envPSVersionTable.CLRVersion
-[string]$envCLRVersionMajor = $envCLRVersion.Major
-[string]$envCLRVersionMinor = $envCLRVersion.Minor
-[string]$envCLRVersionBuild = $envCLRVersion.Build
-[string]$envCLRVersionRevision = $envCLRVersion.Revision
-[string]$envCLRVersion = $envCLRVersion.ToString()
+if ($envPSVersionMajor -eq 5) {
+	[version]$envCLRVersion = $envPSVersionTable.CLRVersion
+	[string]$envCLRVersionMajor = $envCLRVersion.Major
+	[string]$envCLRVersionMinor = $envCLRVersion.Minor
+	[string]$envCLRVersionBuild = $envCLRVersion.Build
+	[string]$envCLRVersionRevision = $envCLRVersion.Revision
+	[string]$envCLRVersion = $envCLRVersion.ToString()
+}
 
 ## Variables: Permissions/Accounts
 [Security.Principal.WindowsIdentity]$CurrentProcessToken = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -1660,7 +1664,7 @@ Function Show-InstallationPrompt {
 		$buttonLeft.DialogResult = 'No'
 		$buttonLeft.AutoSize = $false
 		$buttonLeft.UseVisualStyleBackColor = $true
-		$buttonLeft.Location = "15,5"
+		$buttonLeft.Location = [System.Drawing.Point]::new(15,5)
 		$buttonLeft.add_Click($buttonLeft_OnClick)
 
 		## Button Middle
@@ -1672,7 +1676,7 @@ Function Show-InstallationPrompt {
 		$buttonMiddle.DialogResult = 'Ignore'
 		$buttonMiddle.AutoSize = $true
 		$buttonMiddle.UseVisualStyleBackColor = $true
-        $buttonMiddle.Location = "170,5"
+        $buttonMiddle.Location = [System.Drawing.Point]::new(170,5)
 		$buttonMiddle.add_Click($buttonMiddle_OnClick)
 
 		## Button Right
@@ -1684,18 +1688,18 @@ Function Show-InstallationPrompt {
 		$buttonRight.DialogResult = 'Yes'
 		$buttonRight.AutoSize = $true
 		$buttonRight.UseVisualStyleBackColor = $true
-		$buttonRight.Location = "325,5"
+		$buttonRight.Location = [System.Drawing.Point]::new(325,5)
 		$buttonRight.add_Click($buttonRight_OnClick)
 
 		## Button Abort (Hidden)
 		$buttonAbort.DataBindings.DefaultDataSourceUpdateMode = 0
 		$buttonAbort.Name = 'buttonAbort'
-		$buttonAbort.Size = '1,1'
+		$buttonAbort.Size = [System.Drawing.Size]::new(1,1)
 		$buttonAbort.DialogResult = 'Abort'
 		$buttonAbort.TabStop = $false
 		$buttonAbort.Visible = $false
 		$buttonAbort.UseVisualStyleBackColor = $true
-        $buttonAbort.Location = "0,0"
+        $buttonAbort.Location = [System.Drawing.Point]::new(0,0)
 		$buttonAbort.add_Click($buttonAbort_OnClick)
 
 		## FlowLayoutPanel
@@ -1780,7 +1784,7 @@ Function Show-InstallationPrompt {
 		## Persistence Timer
 		[scriptblock]$RefreshInstallationPrompt = {
 			$formInstallationPrompt.BringToFront()
-			$formInstallationPrompt.Location = "$($formInstallationPromptStartPosition.X),$($formInstallationPromptStartPosition.Y)"
+			$formInstallationPrompt.Location = [System.Drawing.Point]::new($formInstallationPromptStartPosition.X,$formInstallationPromptStartPosition.Y)
 			$formInstallationPrompt.Refresh()
 		}
 		If ($persistPrompt) {
@@ -1803,7 +1807,7 @@ Function Show-InstallationPrompt {
 			$installPromptParameters.Remove('NoWait')
 			# Format the parameters as a string
 			[string]$installPromptParameters = ($installPromptParameters.GetEnumerator() | ForEach-Object { If ($_.Value.GetType().Name -eq 'SwitchParameter') { "-$($_.Key):`$" + "$($_.Value)".ToLower() } ElseIf ($_.Value.GetType().Name -eq 'Boolean') { "-$($_.Key) `$" + "$($_.Value)".ToLower() } ElseIf ($_.Value.GetType().Name -eq 'Int32') { "-$($_.Key) $($_.Value)" } Else { "-$($_.Key) `"$($_.Value)`"" } }) -join ' '
-			Start-Process -FilePath "$PSHOME\powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `"$scriptPath`" -ReferredInstallTitle `"$Title`" -ReferredInstallName `"$installName`" -ReferredLogName `"$logName`" -ShowInstallationPrompt $installPromptParameters -AsyncToolkitLaunch" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'
+			Start-Process -FilePath $envPOSHExePath -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `"$scriptPath`" -ReferredInstallTitle `"$Title`" -ReferredInstallName `"$installName`" -ReferredLogName `"$logName`" -ShowInstallationPrompt $installPromptParameters -AsyncToolkitLaunch" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'
 		}
 		## Otherwise, show the prompt synchronously. If user cancels, then keep showing it until user responds using one of the buttons.
 		Else {
@@ -2022,8 +2026,8 @@ Function Get-HardwarePlatform {
 	Process {
 		Try {
 			Write-Log -Message 'Retrieve hardware platform information.' -Source ${CmdletName}
-			$hwBios = Get-WmiObject -Class 'Win32_BIOS' -ErrorAction 'Stop' | Select-Object -Property 'Version', 'SerialNumber'
-			$hwMakeModel = Get-WMIObject -Class 'Win32_ComputerSystem' -ErrorAction 'Stop' | Select-Object -Property 'Model', 'Manufacturer'
+			$hwBios = Get-CimInstance -ClassName 'Win32_BIOS' -ErrorAction 'Stop' | Select-Object -Property 'Version', 'SerialNumber'
+			$hwMakeModel = Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction 'Stop' | Select-Object -Property 'Model', 'Manufacturer'
 
 			If ($hwBIOS.Version -match 'VRTUAL') { $hwType = 'Virtual:Hyper-V' }
 			ElseIf ($hwBIOS.Version -match 'A M I') { $hwType = 'Virtual:Virtual PC' }
@@ -2085,7 +2089,7 @@ Function Get-FreeDiskSpace {
 	Process {
 		Try {
 			Write-Log -Message "Retrieve free disk space for drive [$Drive]." -Source ${CmdletName}
-			$disk = Get-WmiObject -Class 'Win32_LogicalDisk' -Filter "DeviceID='$Drive'" -ErrorAction 'Stop'
+			$disk = Get-CimInstance -ClassName 'Win32_LogicalDisk' -Filter "DeviceID='$Drive'" -ErrorAction 'Stop'
 			[double]$freeDiskSpace = [math]::Round($disk.FreeSpace / 1MB)
 
 			Write-Log -Message "Free disk space for drive [$Drive]: [$freeDiskSpace MB]." -Source ${CmdletName}
@@ -3444,7 +3448,7 @@ Function Test-IsMutexAvailable {
 				If ($MutexName -eq 'Global\_MSIExecute') {
 					## Get the command line for the MSI installation in progress
 					Try {
-						[string]$msiInProgressCmdLine = Get-WmiObject -Class 'Win32_Process' -Filter "name = 'msiexec.exe'" -ErrorAction 'Stop' | Where-Object { $_.CommandLine } | Select-Object -ExpandProperty 'CommandLine' | Where-Object { $_ -match '\.msi' } | ForEach-Object { $_.Trim() }
+						[string]$msiInProgressCmdLine = Get-CimInstance -ClassName 'Win32_Process' -Filter "name = 'msiexec.exe'" -ErrorAction 'Stop' | Where-Object { $_.CommandLine } | Select-Object -ExpandProperty 'CommandLine' | Where-Object { $_ -match '\.msi' } | ForEach-Object { $_.Trim() }
 					}
 					Catch { }
 					Write-Log -Message "Mutex [$MutexName] is not available for an exclusive lock because the following MSI installation is in progress [$msiInProgressCmdLine]." -Severity 2 -Source ${CmdletName}
@@ -4623,7 +4627,7 @@ Function ConvertTo-NTAccountOrSID {
 
 					#  Get the SID for the root domain
 					Try {
-						$MachineRootDomain = (Get-WmiObject -Class 'Win32_ComputerSystem' -ErrorAction 'Stop').Domain.ToLower()
+						$MachineRootDomain = (Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction 'Stop').Domain.ToLower()
 						$ADDomainObj = New-Object -TypeName 'System.DirectoryServices.DirectoryEntry' -ArgumentList "LDAP://$MachineRootDomain"
 						$DomainSidInBinary = $ADDomainObj.ObjectSid
 						$DomainSid = New-Object -TypeName 'System.Security.Principal.SecurityIdentifier' -ArgumentList ($DomainSidInBinary[0], 0)
@@ -5030,10 +5034,10 @@ Function Execute-ProcessAsUser {
 .PARAMETER ContinueOnError
 	Continue if an error is encountered. Default is $true.
 .EXAMPLE
-	Execute-ProcessAsUser -UserName 'CONTOSO\User' -Path "$PSHOME\powershell.exe" -Parameters "-Command & { & `"C:\Test\Script.ps1`"; Exit `$LastExitCode }" -Wait
+	Execute-ProcessAsUser -UserName 'CONTOSO\User' -Path "$envPOSHExePath" -Parameters "-Command & { & `"C:\Test\Script.ps1`"; Exit `$LastExitCode }" -Wait
 	Execute process under a user account by specifying a username under which to execute it.
 .EXAMPLE
-	Execute-ProcessAsUser -Path "$PSHOME\powershell.exe" -Parameters "-Command & { & `"C:\Test\Script.ps1`"; Exit `$LastExitCode }" -Wait
+	Execute-ProcessAsUser -Path "$envPOSHExePath" -Parameters "-Command & { & `"C:\Test\Script.ps1`"; Exit `$LastExitCode }" -Wait
 	Execute process under a user account by using the default active logged in user that was detected when the toolkit was launched.
 .NOTES
 .LINK
@@ -5616,7 +5620,7 @@ Function Block-AppExecution {
 	</Settings>
 	<Actions Context="Author">
 		<Exec>
-			<Command>$PSHome\powershell.exe</Command>
+			<Command>$envPOSHExePath</Command>
 			<Arguments>$schTaskUnblockAppsCommand</Arguments>
 		</Exec>
 	</Actions>
@@ -5656,7 +5660,7 @@ Function Block-AppExecution {
 		Copy-Item -Path "$scriptRoot\*.*" -Destination $blockExecutionTempPath -Exclude 'thumbs.db' -Force -Recurse -ErrorAction 'SilentlyContinue'
 
 		## Build the debugger block value script
-		[string]$debuggerBlockMessageCmd = "`"$PSHome\powershell.exe -ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `" & chr(34) & `"$blockExecutionTempPath\$scriptFileName`" & chr(34) & `" -ShowBlockedAppDialog -AsyncToolkitLaunch -ReferredInstallTitle `" & chr(34) & `"$installTitle`" & chr(34)"
+		[string]$debuggerBlockMessageCmd = "`"$envPOSHExePath -ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `" & chr(34) & `"$blockExecutionTempPath\$scriptFileName`" & chr(34) & `" -ShowBlockedAppDialog -AsyncToolkitLaunch -ReferredInstallTitle `" & chr(34) & `"$installTitle`" & chr(34)"
 		[string[]]$debuggerBlockScript = "strCommand = $debuggerBlockMessageCmd"
 		$debuggerBlockScript += 'set oWShell = CreateObject("WScript.Shell")'
 		$debuggerBlockScript += 'oWShell.Run strCommand, 0, false'
@@ -6982,7 +6986,7 @@ Function Show-WelcomePrompt {
 
 		Function Update-InstallationWelcome {
 			$formWelcome.BringToFront()
-			$formWelcome.Location = "$($formWelcomeStartPosition.X),$($formWelcomeStartPosition.Y)"
+			$formWelcome.Location = [System.Drawing.Point]::new($formWelcomeStartPosition.X,$formWelcomeStartPosition.Y)
 			$formWelcome.Refresh()
 		}
 
@@ -7100,7 +7104,7 @@ Function Show-InstallationRestartPrompt {
 		If ($deployModeSilent) {
             If ($NoSilentRestart -eq $false) {
 				Write-Log -Message "Triggering restart silently, because the deploy mode is set to [$deployMode] and [NoSilentRestart] is disabled. Timeout is set to [$SilentCountdownSeconds] seconds." -Source ${CmdletName}
-				Start-Process -FilePath "$PSHOME\powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -Command `"& {Start-Sleep -Seconds $SilentCountdownSeconds;Restart-Computer -Force;}`"" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'   
+				Start-Process -FilePath $envPOSHExePath -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -Command `"& {Start-Sleep -Seconds $SilentCountdownSeconds;Restart-Computer -Force;}`"" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'   
             }
             Else {
                 Write-Log -Message "Skipping restart, because the deploy mode is set to [$deployMode] and [NoSilentRestart] is enabled." -Source ${CmdletName}
@@ -7168,7 +7172,7 @@ Function Show-InstallationRestartPrompt {
 				$formRestart.WindowState = 'Normal'
 				$formRestart.TopMost = $true
 				$formRestart.BringToFront()
-				$formRestart.Location = "$($formInstallationRestartPromptStartPosition.X),$($formInstallationRestartPromptStartPosition.Y)"
+				$formRestart.Location = [System.Drawing.Point]::new($formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y)
 				$formRestart.Refresh()
 				[Windows.Forms.Application]::DoEvents()
 			}
@@ -7212,7 +7216,7 @@ Function Show-InstallationRestartPrompt {
 						$formRestart.WindowState = 'Normal'
 						$formRestart.TopMost = $true
 						$formRestart.BringToFront()
-						$formRestart.Location = "$($formInstallationRestartPromptStartPosition.X),$($formInstallationRestartPromptStartPosition.Y)"
+						$formRestart.Location = [System.Drawing.Point]::new($formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y)
 						$formRestart.Refresh()
 						[Windows.Forms.Application]::DoEvents()
 					}
@@ -7246,7 +7250,7 @@ Function Show-InstallationRestartPrompt {
 		$formRestart.Controls.Add($picturebox)
 		$formRestart.Controls.Add($buttonRestartNow)
 		$clientSizeY = 260 + $appDeployLogoBannerHeightDifference
-		$formRestart.ClientSize = "450,$clientSizeY"
+		$formRestart.ClientSize = [System.Drawing.Size]::new(450,$clientSizeY)
 		$formRestart.ControlBox = $false
 		$formRestart.FormBorderStyle = 'FixedDialog'
 		$formRestart.Icon = New-Object -TypeName 'System.Drawing.Icon' -ArgumentList $AppDeployLogoIcon
@@ -7264,14 +7268,14 @@ Function Show-InstallationRestartPrompt {
 		$picturebox.Location = '0,0'
 		$picturebox.Name = 'picturebox'
 		$pictureboxSizeY = $appDeployLogoBannerHeight
-		$picturebox.Size = "450,$pictureboxSizeY"
+		$picturebox.Size = [System.Drawing.Size]::new(450,$pictureboxSizeY)
 		$picturebox.SizeMode = 'CenterImage'
 		$picturebox.TabIndex = 1
 		$picturebox.TabStop = $false
 
 		## Label Message
 		$labelMessageLocationY = 58 + $appDeployLogoBannerHeightDifference
-		$labelMessage.Location = "20,$labelMessageLocationY"
+		$labelMessage.Location = [System.Drawing.Point]::new(20,$labelMessageLocationY)
 		$labelMessage.Name = 'labelMessage'
 		$labelMessage.Size = '400,79'
 		$labelMessage.TabIndex = 3
@@ -7281,7 +7285,7 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Time Remaining
 		$labelTimeRemainingLocationY = 138 + $appDeployLogoBannerHeightDifference
-		$labelTimeRemaining.Location = "20,$labelTimeRemainingLocationY"
+		$labelTimeRemaining.Location = [System.Drawing.Point]::new(20,$labelTimeRemainingLocationY)
 		$labelTimeRemaining.Name = 'labelTimeRemaining'
 		$labelTimeRemaining.Size = '400,23'
 		$labelTimeRemaining.TabIndex = 4
@@ -7291,7 +7295,7 @@ Function Show-InstallationRestartPrompt {
 		## Label Countdown
 		$labelCountdown.Font = 'Microsoft Sans Serif, 18pt, style=Bold'
 		$labelCountdownLocationY = 165 + $appDeployLogoBannerHeightDifference
-		$labelCountdown.Location = "20,$labelCountdownLocationY"
+		$labelCountdown.Location = [System.Drawing.Point]::new(20,$labelCountdownLocationY)
 		$labelCountdown.Name = 'labelCountdown'
 		$labelCountdown.Size = '400,30'
 		$labelCountdown.TabIndex = 5
@@ -7303,7 +7307,7 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Restart Later
 		$buttonRestartLater.Anchor = 'Bottom,Left'
-		$buttonRestartLater.Location = "20,$buttonsLocationY"
+		$buttonRestartLater.Location = [System.Drawing.Point]::new(20,$buttonsLocationY)
 		$buttonRestartLater.Name = 'buttonRestartLater'
 		$buttonRestartLater.Size = '159,23'
 		$buttonRestartLater.TabIndex = 0
@@ -7313,7 +7317,7 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Restart Now
 		$buttonRestartNow.Anchor = 'Bottom,Right'
-		$buttonRestartNow.Location = "265,$buttonsLocationY"
+		$buttonRestartNow.Location = [System.Drawing.Point]::new(265,$buttonsLocationY)
 		$buttonRestartNow.Name = 'buttonRestartNow'
 		$buttonRestartNow.Size = '159,23'
 		$buttonRestartNow.TabIndex = 2
@@ -7362,7 +7366,7 @@ Function Show-InstallationRestartPrompt {
 				}
 			}) -join ' '
 			## Start another powershell instance silently with function parameters from this function
-			Start-Process -FilePath "$PSHOME\powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `"$scriptPath`" -ReferredInstallTitle `"$installTitle`" -ReferredInstallName `"$installName`" -ReferredLogName `"$logName`" -ShowInstallationRestartPrompt $installRestartPromptParameters -AsyncToolkitLaunch" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'
+			Start-Process -FilePath $envPOSHExePath -ArgumentList "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -File `"$scriptPath`" -ReferredInstallTitle `"$installTitle`" -ReferredInstallName `"$installName`" -ReferredLogName `"$logName`" -ShowInstallationRestartPrompt $installRestartPromptParameters -AsyncToolkitLaunch" -WindowStyle 'Hidden' -ErrorAction 'SilentlyContinue'
 		}
 		Else {
 			If ($NoCountdown) {
@@ -7488,7 +7492,7 @@ Function Show-BalloonTip {
 
 			## Invoke a separate PowerShell process passing the script block as a command and associated parameters to display the balloon tip notification asynchronously
 			Try {
-				Execute-Process -Path "$PSHOME\powershell.exe" -Parameters "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -Command & {$notifyIconScriptBlock} '$BalloonTipText' '$BalloonTipTitle' '$BalloonTipIcon' '$BalloonTipTime' '$AppDeployLogoIcon'" -NoWait -WindowStyle 'Hidden' -CreateNoWindow
+				Execute-Process -Path "$envPOSHExePath" -Parameters "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -Command & {$notifyIconScriptBlock} '$BalloonTipText' '$BalloonTipTitle' '$BalloonTipIcon' '$BalloonTipTime' '$AppDeployLogoIcon'" -NoWait -WindowStyle 'Hidden' -CreateNoWindow
 			}
 			Catch { }
 		}
@@ -9369,7 +9373,7 @@ Function Test-Battery {
 			$IsLaptop = $true
 		}
 		#  Chassis Types
-		[int32[]]$ChassisTypes = Get-WmiObject -Class 'Win32_SystemEnclosure' | Where-Object { $_.ChassisTypes } | Select-Object -ExpandProperty 'ChassisTypes'
+		[int32[]]$ChassisTypes = Get-CimInstance -ClassName 'Win32_SystemEnclosure' | Where-Object { $_.ChassisTypes } | Select-Object -ExpandProperty 'ChassisTypes'
 		Write-Log -Message "The following system chassis types were detected [$($ChassisTypes -join ',')]." -Source ${CmdletName}
 		ForEach ($ChassisType in $ChassisTypes) {
 			Switch ($ChassisType) {
@@ -9419,7 +9423,7 @@ Function Test-NetworkConnection {
 	Process {
 		Write-Log -Message 'Check if system is using a wired network connection...' -Source ${CmdletName}
 
-		[psobject[]]$networkConnected = Get-WmiObject -Class 'Win32_NetworkAdapter' | Where-Object { ($_.NetConnectionStatus -eq 2) -and ($_.NetConnectionID -match 'Local' -or $_.NetConnectionID -match 'Ethernet') -and ($_.NetConnectionID -notmatch 'Wireless') -and ($_.Name -notmatch 'Virtual') } -ErrorAction 'SilentlyContinue'
+		[psobject[]]$networkConnected = Get-CimInstance -ClassName 'Win32_NetworkAdapter' | Where-Object { ($_.NetConnectionStatus -eq 2) -and ($_.NetConnectionID -match 'Local' -or $_.NetConnectionID -match 'Ethernet') -and ($_.NetConnectionID -notmatch 'Wireless') -and ($_.Name -notmatch 'Virtual') } -ErrorAction 'SilentlyContinue'
 		[boolean]$onNetwork = $false
 		If ($networkConnected) {
 			Write-Log -Message 'Wired network connection found.' -Source ${CmdletName}
@@ -10085,7 +10089,7 @@ Function Set-ActiveSetup {
 					[string]$StubPath = "$CUStubExePath $CUArguments"
 				}
 				'.ps1' {
-					[string]$CUStubExePath = "$PSHOME\powershell.exe"
+					[string]$CUStubExePath = "$envPOSHExePath"
 					[string]$CUArguments = "-ExecutionPolicy Bypass -NoProfile -NoLogo -WindowStyle Hidden -Command `"& { & `\`"$StubExePath`\`"}`""
 					[string]$StubPath = "$CUStubExePath $CUArguments"
 				}
@@ -11129,6 +11133,16 @@ If ($invokingScript) {
 ## Add the custom types required for the toolkit
 If (-not ([Management.Automation.PSTypeName]'PSADT.UiAutomation').Type) {
 	[string[]]$ReferencedAssemblies = 'System.Drawing', 'System.Windows.Forms', 'System.DirectoryServices'
+	if ($envPSVersionMajor -eq 7 -and $envPSVersionMinor -eq 0) {
+		[string[]]$ReferencedAssemblies = 'System.Drawing', 'System.Windows.Forms', 'System.DirectoryServices',
+			'System.Text.RegularExpressions', 'System.Collections', 'Microsoft.Win32.Primitives',
+			'System.Security.Principal.Windows', 'System.ComponentModel.Primitives', 'System.Runtime.Extensions'
+	}
+	elseif ($envPSVersionMajor -ge 7 -and $envPSVersionMinor -gt 0) {
+		[string[]]$ReferencedAssemblies = 'System.Drawing', 'System.Windows.Forms', 'System.DirectoryServices',
+			'System.Text.RegularExpressions', 'System.Collections', 'Microsoft.Win32.Primitives',
+			'System.Security.Principal.Windows', 'System.ComponentModel.Primitives'
+	}
 	Add-Type -Path $appDeployCustomTypesSourceCode -ReferencedAssemblies $ReferencedAssemblies -IgnoreWarnings -ErrorAction 'Stop'
 }
 
