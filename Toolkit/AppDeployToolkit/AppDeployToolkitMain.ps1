@@ -250,12 +250,16 @@ Else {
 #  CLR (.NET) Version used by PowerShell
 if ($envPSVersionMajor -eq 5) {
 	[version]$envCLRVersion = $envPSVersionTable.CLRVersion
-	[string]$envCLRVersionMajor = $envCLRVersion.Major
-	[string]$envCLRVersionMinor = $envCLRVersion.Minor
-	[string]$envCLRVersionBuild = $envCLRVersion.Build
-	[string]$envCLRVersionRevision = $envCLRVersion.Revision
-	[string]$envCLRVersion = $envCLRVersion.ToString()
 }
+else {
+	[version]$envCLRVersion = [Environment]::Version
+}
+
+[string]$envCLRVersionMajor = $envCLRVersion.Major
+[string]$envCLRVersionMinor = $envCLRVersion.Minor
+[string]$envCLRVersionBuild = $envCLRVersion.Build
+[string]$envCLRVersionRevision = $envCLRVersion.Revision
+[string]$envCLRVersion = $envCLRVersion.ToString()
 
 ## Variables: Permissions/Accounts
 [Security.Principal.WindowsIdentity]$CurrentProcessToken = [Security.Principal.WindowsIdentity]::GetCurrent()
