@@ -1664,7 +1664,7 @@ Function Show-InstallationPrompt {
 		$buttonLeft.DialogResult = 'No'
 		$buttonLeft.AutoSize = $false
 		$buttonLeft.UseVisualStyleBackColor = $true
-		$buttonLeft.Location = [System.Drawing.Point]::new(15,5)
+		$buttonLeft.Location = New-Object -TypeName System.Drawing.Point 15,5
 		$buttonLeft.add_Click($buttonLeft_OnClick)
 
 		## Button Middle
@@ -1676,7 +1676,7 @@ Function Show-InstallationPrompt {
 		$buttonMiddle.DialogResult = 'Ignore'
 		$buttonMiddle.AutoSize = $true
 		$buttonMiddle.UseVisualStyleBackColor = $true
-        $buttonMiddle.Location = [System.Drawing.Point]::new(170,5)
+        $buttonMiddle.Location = New-Object -TypeName System.Drawing.Point 170,5
 		$buttonMiddle.add_Click($buttonMiddle_OnClick)
 
 		## Button Right
@@ -1688,18 +1688,18 @@ Function Show-InstallationPrompt {
 		$buttonRight.DialogResult = 'Yes'
 		$buttonRight.AutoSize = $true
 		$buttonRight.UseVisualStyleBackColor = $true
-		$buttonRight.Location = [System.Drawing.Point]::new(325,5)
+		$buttonRight.Location = New-Object -TypeName System.Drawing.Point 325,5
 		$buttonRight.add_Click($buttonRight_OnClick)
 
 		## Button Abort (Hidden)
 		$buttonAbort.DataBindings.DefaultDataSourceUpdateMode = 0
 		$buttonAbort.Name = 'buttonAbort'
-		$buttonAbort.Size = [System.Drawing.Size]::new(1,1)
+		$buttonAbort.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 1,1
 		$buttonAbort.DialogResult = 'Abort'
 		$buttonAbort.TabStop = $false
 		$buttonAbort.Visible = $false
 		$buttonAbort.UseVisualStyleBackColor = $true
-        $buttonAbort.Location = [System.Drawing.Point]::new(0,0)
+        $buttonAbort.Location = New-Object -TypeName System.Drawing.Point 0,0
 		$buttonAbort.add_Click($buttonAbort_OnClick)
 
 		## FlowLayoutPanel
@@ -1784,7 +1784,7 @@ Function Show-InstallationPrompt {
 		## Persistence Timer
 		[scriptblock]$RefreshInstallationPrompt = {
 			$formInstallationPrompt.BringToFront()
-			$formInstallationPrompt.Location = [System.Drawing.Point]::new($formInstallationPromptStartPosition.X,$formInstallationPromptStartPosition.Y)
+			$formInstallationPrompt.Location = New-Object -TypeName System.Drawing.Point $formInstallationPromptStartPosition.X,$formInstallationPromptStartPosition.Y
 			$formInstallationPrompt.Refresh()
 		}
 		If ($persistPrompt) {
@@ -6986,7 +6986,7 @@ Function Show-WelcomePrompt {
 
 		Function Update-InstallationWelcome {
 			$formWelcome.BringToFront()
-			$formWelcome.Location = [System.Drawing.Point]::new($formWelcomeStartPosition.X,$formWelcomeStartPosition.Y)
+			$formWelcome.Location = New-Object -TypeName System.Drawing.Point -ArgumentList $formWelcomeStartPosition.X,$formWelcomeStartPosition.Y
 			$formWelcome.Refresh()
 		}
 
@@ -7172,7 +7172,7 @@ Function Show-InstallationRestartPrompt {
 				$formRestart.WindowState = 'Normal'
 				$formRestart.TopMost = $true
 				$formRestart.BringToFront()
-				$formRestart.Location = [System.Drawing.Point]::new($formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y)
+				$formRestart.Location = New-Object -TypeName System.Drawing.Point -ArgumentList $formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y
 				$formRestart.Refresh()
 				[Windows.Forms.Application]::DoEvents()
 			}
@@ -7216,7 +7216,7 @@ Function Show-InstallationRestartPrompt {
 						$formRestart.WindowState = 'Normal'
 						$formRestart.TopMost = $true
 						$formRestart.BringToFront()
-						$formRestart.Location = [System.Drawing.Point]::new($formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y)
+						$formRestart.Location = New-Object -TypeName System.Drawing.Point -ArgumentList $formInstallationRestartPromptStartPosition.X,$formInstallationRestartPromptStartPosition.Y
 						$formRestart.Refresh()
 						[Windows.Forms.Application]::DoEvents()
 					}
@@ -7265,19 +7265,19 @@ Function Show-InstallationRestartPrompt {
 		## Banner
 		$picturebox.Anchor = 'Top'
 		$picturebox.Image = [Drawing.Image]::Fromfile($AppDeployLogoBanner)
-		$picturebox.Location = '0,0'
+		$picturebox.Location = New-Object -TypeName System.Drawing.Point 0,0
 		$picturebox.Name = 'picturebox'
 		$pictureboxSizeY = $appDeployLogoBannerHeight
-		$picturebox.Size = [System.Drawing.Size]::new(450,$pictureboxSizeY)
+		$picturebox.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 450,$pictureboxSizeY
 		$picturebox.SizeMode = 'CenterImage'
 		$picturebox.TabIndex = 1
 		$picturebox.TabStop = $false
 
 		## Label Message
 		$labelMessageLocationY = 58 + $appDeployLogoBannerHeightDifference
-		$labelMessage.Location = [System.Drawing.Point]::new(20,$labelMessageLocationY)
+		$labelMessage.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 20,$labelMessageLocationY
 		$labelMessage.Name = 'labelMessage'
-		$labelMessage.Size = '400,79'
+		$labelMessage.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 400,79
 		$labelMessage.TabIndex = 3
 		$labelMessage.Text = "$configRestartPromptMessage $configRestartPromptMessageTime `n`n$configRestartPromptMessageRestart"
 		If ($NoCountdown) { $labelMessage.Text = $configRestartPromptMessage }
@@ -7285,9 +7285,9 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Time Remaining
 		$labelTimeRemainingLocationY = 138 + $appDeployLogoBannerHeightDifference
-		$labelTimeRemaining.Location = [System.Drawing.Point]::new(20,$labelTimeRemainingLocationY)
+		$labelTimeRemaining.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 20,$labelTimeRemainingLocationY
 		$labelTimeRemaining.Name = 'labelTimeRemaining'
-		$labelTimeRemaining.Size = '400,23'
+		$labelTimeRemaining.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 400,23
 		$labelTimeRemaining.TabIndex = 4
 		$labelTimeRemaining.Text = $configRestartPromptTimeRemaining
 		$labelTimeRemaining.TextAlign = 'MiddleCenter'
@@ -7295,9 +7295,9 @@ Function Show-InstallationRestartPrompt {
 		## Label Countdown
 		$labelCountdown.Font = 'Microsoft Sans Serif, 18pt, style=Bold'
 		$labelCountdownLocationY = 165 + $appDeployLogoBannerHeightDifference
-		$labelCountdown.Location = [System.Drawing.Point]::new(20,$labelCountdownLocationY)
+		$labelCountdown.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 20,$labelCountdownLocationY
 		$labelCountdown.Name = 'labelCountdown'
-		$labelCountdown.Size = '400,30'
+		$labelCountdown.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 400,30
 		$labelCountdown.TabIndex = 5
 		$labelCountdown.Text = '00:00:00'
 		$labelCountdown.TextAlign = 'MiddleCenter'
@@ -7307,9 +7307,9 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Restart Later
 		$buttonRestartLater.Anchor = 'Bottom,Left'
-		$buttonRestartLater.Location = [System.Drawing.Point]::new(20,$buttonsLocationY)
+		$buttonRestartLater.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 20,$buttonsLocationY
 		$buttonRestartLater.Name = 'buttonRestartLater'
-		$buttonRestartLater.Size = '159,23'
+		$buttonRestartLater.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 159,23
 		$buttonRestartLater.TabIndex = 0
 		$buttonRestartLater.Text = $configRestartPromptButtonRestartLater
 		$buttonRestartLater.UseVisualStyleBackColor = $true
@@ -7317,9 +7317,9 @@ Function Show-InstallationRestartPrompt {
 
 		## Label Restart Now
 		$buttonRestartNow.Anchor = 'Bottom,Right'
-		$buttonRestartNow.Location = [System.Drawing.Point]::new(265,$buttonsLocationY)
+		$buttonRestartNow.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 265,$buttonsLocationY
 		$buttonRestartNow.Name = 'buttonRestartNow'
-		$buttonRestartNow.Size = '159,23'
+		$buttonRestartNow.Size = New-Object -TypeName 'System.Drawing.Size' -ArgumentList 159,23
 		$buttonRestartNow.TabIndex = 2
 		$buttonRestartNow.Text = $configRestartPromptButtonRestartNow
 		$buttonRestartNow.UseVisualStyleBackColor = $true
